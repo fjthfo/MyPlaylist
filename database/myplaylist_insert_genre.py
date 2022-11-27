@@ -13,7 +13,7 @@ artist_name = []
 track_name = []
 artist_id = []
 track_id = []
-for i in range(0, 800, 50):
+for i in range(0, 720, 50):
     track_results = sp.search(
         q='year:2015-2022', type='track', limit=50, offset=i, market='KR')
     for i, t in enumerate(track_results['tracks']['items']):
@@ -48,6 +48,8 @@ print('4')
 pprint.pprint(track_df)
 print(track_df.shape)
 track_df['artist_genres'] = track_df['artist_genres'].astype("string")
+track_df.drop_duplicates(['track_name', 'artist_name'])
+print(track_df)
 # pip install pymysql
 # pip install sqlalchemy
 
@@ -65,6 +67,12 @@ conn = engine.connect()
 # 변수명은 이전에 만든 데이터프레임 변수명
 # name은 생성할 테이블명
 # index=False, 인덱스 제외
-track_df.to_sql(name='Song', con=engine,
-                if_exists='append', index=False)
+# track_df.to_sql(name='Song', con=engine,if_exists='append', index=False)
+for i in range(len(track_df)):
+    try:
+        track_df.iloc[i:i+1].to_sql(name='Song',
+                                    con=engine, if_exists='append', index=False)
+
+    except:
+        pass
 conn.close()
