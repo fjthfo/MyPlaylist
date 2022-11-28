@@ -1,3 +1,2 @@
-cursor.execute(
-    #     "SELECT reco_num FROM recommend where `playlist_id` ='%s'" % (Pid))
-    # row = cursor.fetchall()
+select = int(input('추가할 노래번호 선택:'))
+        # add_song(row, select)

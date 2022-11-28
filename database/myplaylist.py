@@ -58,22 +58,38 @@ def login():
 
 
 def SongList():  # * 1번
-    a = 0
     print('-------------------------------------------- 노래목록 --------------------------------------------')
     cursor.execute("SELECT track_name, artist_name, track_id FROM song")
     row = cursor.fetchall()
-    print(tabulate(row, headers=['노래', '가수', '장르'],
-          tablefmt='plain', stralign='left', showindex=True))
-    for i, j, k in row[:500]:
-        a += 1
-        print('%d\t%-65s%s' % (a, i, j))
-        # todo 페이지로 분할
-    add_song(row)
+    # print(tabulate(row, headers=['노래', '가수', '장르'],
+    #       tablefmt='plain', stralign='left', showindex=True))
+    count = 50
+    song_page(row, count)
+    while True:
+        select = input('이전페이지[<] | 다음페이지 [>] | 뒤로가기[b] | 추가할 노래번호 입력\n')
+        if select == '>':
+            count += 50
+            song_page(row, count)
+        elif select == '<':
+            count -= 50
+            song_page(row, count)
+        elif select == 'b':
+            break
+        else:
+            add_song(row, int(select))
+    menu()
+
+
+def song_page(row, count):
+    num = count-50
+    for i, j, k in row[num:count]:
+        num += 1
+        print('%d\t%-65s%s' % (num, i, j))
 
 
 def search_song():  # * 2번
     print('----------------노래검색페이지----------------')
-    word = input("검색창 : ")
+    word = input("가수 또는 노래 검색 : ")
     cursor.execute(
         "SELECT DISTINCT * FROM (SELECT a.track_name, a.artist_name, a.track_id, GROUP_CONCAT(' ',b.genre) AS genres FROM song a LEFT JOIN genres b ON a.track_id = b.track_id GROUP BY a.track_id) AS a WHERE a.track_name LIKE '%%%s%%' OR a.artist_name LIKE '%%%s%%' ORDER BY a.artist_name" % (word, word))
     row = cursor.fetchall()
@@ -85,28 +101,7 @@ def search_song():  # * 2번
     add_song(row)
 
 
-# def name_playlist():  # * 3번
-#     cursor.execute(
-#         "SELECT `title` FROM playlist WHERE user_id = '%s'" % (Uid))
-#     row = cursor.fetchall()
-#     if len(row) < 1:
-#         title = input('플레이리스트의 이름을 입력하세요: ')
-#         cursor.execute("INSERT INTO `Playlist` (`user_id`, `title`) VALUES ('%s', '%s')" % (
-#             Uid, title))
-#         cnxn.commit()
-#     else:
-#         print('---------------------------------------')
-#         print('플레이리스트 제목: ', row[0][0])
-#         cursor.execute(
-#             "SELECT DISTINCT * FROM (SELECT a.track_name, a.artist_name, a.track_id, GROUP_CONCAT(b.genre) AS genres FROM song a INNER JOIN genres b ON a.track_id = b.track_id GROUP BY a.track_id) c where track_id IN( SELECT track_id from track where user_id = '%s')" % (Uid))
-#         row = cursor.fetchall()
-#         a = 0
-#         for i, j, k, r in row:
-#             a += 1
-#             print('%d\t%-65s%-25s\t%s' % (a, i, j, r))
-
-
-def edit_playlist():  # *  4번
+def edit_playlist():  # *  3번
     print('----------------플레이리스트 수정----------------')
     while True:
         row = show_myplaylist(Uid)
@@ -133,40 +128,70 @@ def edit_playlist():  # *  4번
 def show_playlist():  # *  4번
     print('# 플레이리스트 목록')
     cursor.execute(
-        "select a.playlist_id, a.title, a.user_id, round(avg(b.reco_num),1) FROM playlist a LEFT JOIN recommend b ON a.playlist_id = b.playlist_id group by a.playlist_id, a.title, a.user_id")
+        "select a.title, a.user_id, round(avg(b.reco_num),1) FROM playlist a LEFT JOIN recommend b ON a.playlist_id = b.playlist_id group by a.playlist_id, a.title, a.user_id")
     row = cursor.fetchall()
 
-    # print(tabulate(row, headers=['제목', '설명', '작성자'],
-    #       tablefmt='pretty', stralign='left', showindex=True))
+    cursor.execute(
+        "select playlist_id FROM playlist")
+    pidrow = cursor.fetchall()
+    print(row)
 
-    print('\t%-10s\t%-10s\t%s' % ('제목', '작성자', '별점'))
-    a = 0
-    for i, j, k, r in row:
-        a += 1
-        print('%d\t%-10s\t%-10s\t%s' % (a, j, k, r))
+    print(tabulate(row, headers=['제목', '작성자', '평점'],
+          tablefmt='pretty', stralign='left', showindex=True))
+
+    # print('\t%-10s\t%-10s\t%s' % ('제목', '작성자', '별점'))
+    # a = 0
+    # for i, j, k, r in row:
+    #     a += 1
+    #     print('%d\t%-10s\t%-10s\t%s' % (a, j, k, r))
 
     select = int(input('조회하고 싶은 플레이리스트의 번호를 입력: '))
-    show_myplaylist(row[select-1][2])
+    Pid = pidrow[select][0]
+    show_myplaylist(row[select][1])
 
     cursor.execute(
-        "SELECT user_id, body FROM comment where playlist_id = '%s'" % (row[select-1][0]))
+        "SELECT user_id, body FROM comment where playlist_id = '%s'" % (Pid))
     row2 = cursor.fetchall()
     if len(row2) > 0:
         for i in range(len(row2)):
             print(' ㄴ %s : %s' % (row2[i][0], row2[i][1]))
 
-    choice = int(input('댓글달기 [1] | 별점매기기[2]\n'))
+    choice = int(input('댓글달기 [1] | 별점매기기[2] | 즐겨찾기 추가[3] | 뒤로가기 [-1]\n'))
     if choice == 1:
-        add_comment(row[select-1][0])
+        add_comment(Pid)
     elif choice == 2:
-        recommend(row[select-1][0])
+        recommend(Pid)
+    elif choice == 3:
+        add_bookmark(Pid, row)
+    elif choice == -1:
+        menu()
+
+
+def add_bookmark(Pid, row):
+    cursor.execute(
+        "INSERT INTO `bookmark` (`playlist_id`, `user_id`) VALUES ('%s', '%s')" % (Pid, Uid))
+    cnxn.commit()
+    print(row)
+    print('추가되었습니다')
+
+
+def show_bookmark():
+    print('#즐겨찾기목록')
+    cursor.execute(
+        "SELECT distinct b.bookmark_id, a.user_id, a.title FROM playlist a INNER JOIN bookmark b ON a.playlist_id = b.playlist_id")
+    row = cursor.fetchall()
+    print(tabulate(row, headers=['번호', '작성자', '제목'],
+          tablefmt='pretty', stralign='left', showindex=False))
+
+
+# def logout():  # *8번
+#     choice = input('로그아웃 하시겠습니까? [Y/N]')
+#     if choice == 'Y' or choice == 'y':
+#         login_num = 0
 
 
 def recommend(Pid):
     num = int(input('1~10까지의 숫자를 입력해주세요 : '))
-    # cursor.execute(
-    #     "SELECT reco_num FROM recommend where `playlist_id` ='%s'" % (Pid))
-    # row = cursor.fetchall()
     if num >= 1 and num <= 10:
         try:
             cursor.execute(
@@ -174,24 +199,6 @@ def recommend(Pid):
             cnxn.commit()
         except pymysql.err.IntegrityError:
             print('이미 등록한 평점입니다.')
-        # else:
-        # cursor.execute(
-        #     "UPDATE recommend SET reco_num = reco_num + '%s' where `playlist_id` = '%s'" % (num, Pid))
-        # cnxn.commit()
-        # cursor.execute(
-        #     "SELECT reco_num FROM recommend WHERE `playlist_id` = '%s'" % (Pid))
-        # row = cursor.fetchall()
-        # print(row)
-        # sum = 0.0
-        # for i in range(len(row)):
-        #     sum += float(row[i][0])
-        # avg = (sum / float(len(row)))
-        # print(float(len(row)))
-        # print(sum)
-        # print(avg)
-        # cursor.execute(
-        #     "UPDATE `recommend` SET `reco_num`='%s' WHERE `playlist_id`='%s'" % (str(avg), Pid))
-        # cnxn.commit()
     else:
         print('잘못된 입력입니다')
 
@@ -204,8 +211,8 @@ def add_comment(Pid):
     print('댓글등록완료')
 
 
-def add_song(row):
-    select = int(input('추가할 노래번호 선택:'))
+def add_song(row, select):
+    # select = int(input('추가할 노래번호 선택:'))
 
     cursor.execute(
         "SELECT `title` FROM playlist WHERE user_id = '%s'" % (Uid))
@@ -245,11 +252,9 @@ def show_myplaylist(Uid):
 
 def menu():
     print('----------------메뉴----------------')
-    print('1.노래 목록')
-    print('2.노래 검색')
-    print('3.내 플레이리스트 수정')
-    print('4.플레이리스트 목록조회')
-    print('8.로그아웃')
+    print('1.노래 목록\t\t2.노래 검색')
+    print('3.내 플레이리스트 수정\t4.플레이리스트 목록조회')
+    print('5.즐겨찾기 목록')
     print('9.종료')
     return int(input())
 
@@ -278,7 +283,8 @@ while True:
         edit_playlist()
     elif menu_num == 4:
         show_playlist()
-    # elif menu_num == 7:
+    elif menu_num == 5:
+        show_bookmark()
     elif menu_num == 9:
         print("Bye")
         break

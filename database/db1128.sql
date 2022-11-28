@@ -5,7 +5,7 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 
--- SET foreign_key_checks = 0;
+SET foreign_key_checks = 0;
 
 -- TRUNCATE playlist;
 -- create table test select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 2),'\'',-1) AS genre from song;
@@ -32,6 +32,8 @@ select a.playlist_id, a.title, a.user_id, round(avg(b.reco_num),1) FROM playlist
 
 SELECT recommend FROM playlist WHERE `user_id` = 'fjthfo';
 
+SELECT b.bookmark_id, a.user_id, a.title FROM playlist a INNER JOIN bookmark b ON a.playlist_id = b.playlist_id;
+alter table bookmark drop user_id;
 
 -- comment 자동증가
 -- ALTER TABLE comment MODIFY comment_id int AUTO_INCREMENT;
@@ -166,6 +168,31 @@ CREATE TABLE IF NOT EXISTS `myplaylistdb`.`recommend` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_recommend_User1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `myplaylistdb`.`User` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `myplaylistdb`.`bookmark`
+-- -----------------------------------------------------
+-- -----------------------------------------------------
+-- Table `myplaylistdb`.`bookmark`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `myplaylistdb`.`bookmark` (
+  `bookmark_id` INT NOT NULL AUTO_INCREMENT,
+  `playlist_id` INT NOT NULL,
+  `user_id` VARCHAR(45) NOT NULL,
+  INDEX `fk_bookmark_Playlist1_idx` (`playlist_id` ASC) VISIBLE,
+  PRIMARY KEY (`bookmark_id`),
+  INDEX `fk_bookmark_User1_idx` (`user_id` ASC) VISIBLE,
+  CONSTRAINT `fk_bookmark_Playlist1`
+    FOREIGN KEY (`playlist_id`)
+    REFERENCES `myplaylistdb`.`Playlist` (`playlist_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_bookmark_User1`
     FOREIGN KEY (`user_id`)
     REFERENCES `myplaylistdb`.`User` (`id`)
     ON DELETE NO ACTION
