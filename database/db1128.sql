@@ -3,26 +3,21 @@
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-SELECT * FROM comment where playlist_id ='1';
 
--- SET foreign_key_checks = 1;
 
-TRUNCATE comment; 
-create table test select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 2),'\'',-1) AS genre from song;
-Insert Into test (select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 4),'\'',-1) AS genre from song);
-Insert Into test (select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 6),'\'',-1) AS genre from song);
-Insert Into test (select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 8),'\'',-1) AS genre from song);
-select * into outfile "/Users/afo/Documents/USW/3-2/database/장르_1128.csv" fields terminated by ',' enclosed by "" escaped by '\\' lines terminated by '\n'from test;
+-- SET foreign_key_checks = 0;
+
+-- TRUNCATE playlist;
+-- create table test select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 2),'\'',-1) AS genre from song;
+-- Insert Into test (select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 4),'\'',-1) AS genre from song);
+-- Insert Into test (select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 6),'\'',-1) AS genre from song);
+-- Insert Into test (select track_id, SUBSTRING_INDEX(SUBSTRING_INDEX(artist_genres, '\'', 8),'\'',-1) AS genre from song);
+-- select * into outfile "/Users/afo/Documents/USW/3-2/database/장르_1128.csv" fields terminated by ',' enclosed by "" escaped by '\\' lines terminated by '\n'from test;
 -- show variables like 'secure_file%';
 -- SHOW VARIABLES LIKE "secure_file_priv";
 -- SELECT @@GLOBAL.secure_file_priv;
 
--- select artist_genres from song where track_id='0203aGEIzVVlmvQ8lX4fmV';
--- SELECT * FROM myplaylistdb.Song;
--- alter table song drop column artist_genres;
 -- ALTER TABLE playlist ADD UNIQUE (user_id, Song_track_id);
-
--- select * FROM track where Playlist_user_id ='fjthfo' and Song_track_id = '0b5xMWDVHK7SSZI0Lr2iNg';
 
 -- 노래 검색
 -- SELECT DISTINCT * FROM (select a.track_name, a.artist_name, a.track_id, GROUP_CONCAT(b.genre) AS genres FROM song a LEFT JOIN genres b ON a.track_id = b.Song_track_id GROUP BY a.track_id) AS a WHERE a.track_name LIKE '%%%je%%' OR a.artist_name LIKE '%%%je%%';
@@ -32,7 +27,10 @@ select * into outfile "/Users/afo/Documents/USW/3-2/database/장르_1128.csv" fi
 -- 중복 제거--
 -- delete from song where track_id in (select track_id from( select ROW_NUMBER() OVER (PARTITION BY track_name order by track_id) a, track_id from song ) b where a >1 );
 
--- SELECT track_name, artist_name from track INNER JOIN song ON track.Song_track_id = song.track_id;
+
+select a.playlist_id, a.title, a.user_id, round(avg(b.reco_num),1) FROM playlist a LEFT JOIN recommend b ON a.playlist_id = b.playlist_id group by a.playlist_id, a.title, a.user_id;
+
+SELECT recommend FROM playlist WHERE `user_id` = 'fjthfo';
 
 
 -- comment 자동증가
@@ -78,12 +76,10 @@ CREATE TABLE IF NOT EXISTS `myplaylistdb`.`Playlist` (
   CONSTRAINT `fk_Playlist_user1`
     FOREIGN KEY (`user_id`)
     REFERENCES `myplaylistdb`.`User` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
-
-
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB  DEFAULT CHARACTER SET = utf8mb4;
+-- alter table playlist DEFAULT CHARACTER SET = utf8mb4;
 -- -----------------------------------------------------
 -- Table `myplaylistdb`.`Song`
 -- -----------------------------------------------------
@@ -119,18 +115,17 @@ CREATE TABLE IF NOT EXISTS `myplaylistdb`.`Track` (
   `track_id` VARCHAR(255) NOT NULL,
   `user_id` VARCHAR(45) NOT NULL,
   INDEX `fk_track_Song1_idx` (`track_id` ASC) VISIBLE,
-  PRIMARY KEY (`track_id`),
   INDEX `fk_track_Playlist1_idx` (`user_id` ASC) VISIBLE,
   CONSTRAINT `fk_track_Song1`
     FOREIGN KEY (`track_id`)
     REFERENCES `myplaylistdb`.`Song` (`track_id`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_track_Playlist1`
     FOREIGN KEY (`user_id`)
     REFERENCES `myplaylistdb`.`Playlist` (`user_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 
@@ -146,16 +141,90 @@ CREATE TABLE IF NOT EXISTS `myplaylistdb`.`Comment` (
   CONSTRAINT `fk_Comment_User1`
     FOREIGN KEY (`user_id`)
     REFERENCES `myplaylistdb`.`User` (`id`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_Comment_Playlist1`
     FOREIGN KEY (`playlist_id`)
     REFERENCES `myplaylistdb`.`Playlist` (`playlist_id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `myplaylistdb`.`recommend`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `myplaylistdb`.`recommend` (
+  `user_id` VARCHAR(45) NOT NULL,
+  `playlist_id` INT NOT NULL,
+  `reco_num` INT NOT NULL DEFAULT 0,
+  INDEX `fk_recommend_Playlist1_idx` (`playlist_id` ASC) VISIBLE,
+  INDEX `fk_recommend_User1_idx` (`user_id` ASC) VISIBLE,
+  PRIMARY KEY (`user_id`, `playlist_id`),
+  CONSTRAINT `fk_recommend_Playlist1`
+    FOREIGN KEY (`playlist_id`)
+    REFERENCES `myplaylistdb`.`Playlist` (`playlist_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_recommend_User1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `myplaylistdb`.`User` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+CREATE TABLE IF NOT EXISTS `myplaylistdb`.`Playlist` (
+  `playlist_id` INT NOT NULL AUTO_INCREMENT,
+  `user_id` VARCHAR(45) NOT NULL,
+  `title` VARCHAR(255) NULL,
+  `describe` VARCHAR(255) NULL,
+  `hashtag` VARCHAR(255) NULL,
+  `recommend` INT(45) NULL,
+  INDEX `fk_Playlist_user1_idx` (`user_id` ASC) VISIBLE,
+  UNIQUE INDEX `user_id_UNIQUE` (`user_id` ASC) VISIBLE,
+  PRIMARY KEY (`playlist_id`, `user_id`),
+  CONSTRAINT `fk_Playlist_user1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `myplaylistdb`.`User` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
+
+CREATE TABLE IF NOT EXISTS `myplaylistdb`.`Track` (
+  `track_id` VARCHAR(255) NOT NULL,
+  `user_id` VARCHAR(45) NOT NULL,
+  INDEX `fk_track_Song1_idx` (`track_id` ASC) VISIBLE,
+  PRIMARY KEY (`track_id`),
+  INDEX `fk_track_Playlist1_idx` (`user_id` ASC) VISIBLE,
+  CONSTRAINT `fk_track_Song1`
+    FOREIGN KEY (`track_id`)
+    REFERENCES `myplaylistdb`.`Song` (`track_id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_track_Playlist1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `myplaylistdb`.`Playlist` (`user_id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS `myplaylistdb`.`Comment` (
+  `playlist_id` INT NOT NULL,
+  `user_id` VARCHAR(45) NOT NULL,
+  `body` VARCHAR(255) NOT NULL,
+  INDEX `fk_Comment_User1_idx` (`user_id` ASC) VISIBLE,
+  INDEX `fk_Comment_Playlist1_idx` (`playlist_id` ASC) VISIBLE,
+  CONSTRAINT `fk_Comment_User1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `myplaylistdb`.`User` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_Comment_Playlist1`
+    FOREIGN KEY (`playlist_id`)
+    REFERENCES `myplaylistdb`.`Playlist` (`playlist_id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
