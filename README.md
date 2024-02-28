@@ -1,6 +1,13 @@
 # 개요
-## 주제
-MyPlayList는 사용자들이 자신만의 플레이리스트를 공유할 수 있는 서비스이다.
+## 소개
+MyPlayList는 Spotify에 있는 곡들로 만든 자신만의 플레이리스트를 공유할 수 있는 서비스이다.
+
+## 개발기간
+2022.10 ~ 2022.12
+
+## 멤버구성
+김주혁(fjthfo)
+
 ## 기능
 1. 음원 데이터를 통한 노래 검색 기능 
 2. 플레이리스트 생성 기능
@@ -11,6 +18,16 @@ MyPlayList는 사용자들이 자신만의 플레이리스트를 공유할 수 �
 - 호스트 언어 : Python
 - DB : mysql
 - OS : macOS Sonoma 14.2
+
+# 기술 스택
+<div align=left> 
+<img src="https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white">
+<img src="https://img.shields.io/badge/spotify-1DB954?style=for-the-badge&logo=spotify&logoColor=white">
+<img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white"> 
+<img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white">
+<img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
+</div>
+
 
 # 요구사항 명세서
 1. 사용자가 플레이리스트를 등록하려면 회원가입을 해야한다
